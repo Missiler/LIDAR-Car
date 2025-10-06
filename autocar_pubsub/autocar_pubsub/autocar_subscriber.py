@@ -9,7 +9,7 @@ from time import sleep
 Device.pin_factory = LGPIOFactory()
 
 # Configure servo for ESC (typical 1–2 ms pulse)
-esc = Servo(17, min_pulse_width=1e-3, max_pulse_width=2e-3, frame_width=20e-3)
+esc = Servo(17, min_pulse_width=1.2e-3, max_pulse_width=1.8e-3, frame_width=20e-3)
 
 class MinimalSubscriber(Node):
     def __init__(self):
@@ -44,7 +44,7 @@ class MinimalSubscriber(Node):
         )
 
         # Map speed_proc (-100..100) to servo value (-1..1)
-        esc_val = max(-1.0, min(1.0, msg.speedproc / 100.0))
+        esc_val = (msg.speedproc / 100.0) * 0.5  # limit throttle range
         esc.value = esc_val
         self.get_logger().info(f"ESC output set to {esc_val:.2f}")
 
