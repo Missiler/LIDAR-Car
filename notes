@@ -1,0 +1,16 @@
+Detta är notes till mig själv:
+
+Har gjort: Skapar och olika paket som ska användas under arbetets gång.
+: Skapa actions så att det går att köra bilen om så önskas. Action servers/clients
+: Börja kolla in hur man kan programmera Raspberry Pi:en. Viktigt att sätta upp de actions och interface som skall användas.
+: Detta betyder att vi måste bestämma vilka parametrar som ska användas och hur.
+: Kolla in hur man styr servon i Python
+: Kolla vilka pins man kan styra PWM-signaler med Raspberry Pi
+:
+:
+:
+: Pins 12 och 13 är PWM. Dessa skall användas till Servomotor och ESC
+
+Nuvarande arbete: Skapa en action som ändrar värden beroende på vilken knapp jag trycker på.
+
+Nästa gång: Skriv om Action Client och Server så att det inte buggar ur hela skiten och går att faktiskt använda.
