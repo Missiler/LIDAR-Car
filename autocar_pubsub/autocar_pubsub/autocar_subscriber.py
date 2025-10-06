@@ -10,7 +10,7 @@ Device.pin_factory = LGPIOFactory()
 
 # === ESC CONFIGURATION ===
 # Adjust these as needed for your ESC and PWM range
-ESC_PIN = 18              # Change to your ESC signal pin
+ESC_PIN = 17              # Change to your ESC signal pin
 ESC_MIN = -1.0            # Full reverse (for bidirectional ESC)
 ESC_NEUTRAL = 0.0         # Stop / Neutral
 ESC_MAX = 1.0             # Full forward
