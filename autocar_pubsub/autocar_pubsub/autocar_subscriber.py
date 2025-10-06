@@ -1,33 +1,25 @@
 import rclpy
 from rclpy.node import Node
 from autocar_interface.msg import DrivingCommand
-import lgpio
-from time import sleep, time
+from gpiozero.pins.lgpio import LGPIOFactory
+from gpiozero import Device, Servo
+from time import sleep
 
-ESC_PIN = 17  # GPIO pin connected to ESC signal
-CHIP = 0      # Usually 0 for Raspberry Pi
+# Use lgpio backend for low-level GPIO access
+Device.pin_factory = LGPIOFactory()
 
-# Typical ESC calibration (adjust if needed)
-NEUTRAL_US = 1500
-MIN_US = 1000
-MAX_US = 2000
-FRAME_US = 20000
+# === ESC CONFIGURATION ===
+# Adjust these as needed for your ESC and PWM range
+ESC_PIN = 18              # Change to your ESC signal pin
+ESC_MIN = -1.0            # Full reverse (for bidirectional ESC)
+ESC_NEUTRAL = 0.0         # Stop / Neutral
+ESC_MAX = 1.0             # Full forward
+RAMP_STEP = 0.02          # Increment per ramp step
+RAMP_DELAY = 0.05         # Delay between steps (seconds)
 
-class ESCController:
-    def __init__(self, chip, pin):
-        self.chip = chip
-        self.pin = pin
-        self.handle = lgpio.gpiochip_open(chip)
-        lgpio.gpio_claim_output(self.handle, pin)
+# Initialize ESC
+esc = Servo(ESC_PIN, min_pulse_width=1.0/1000, max_pulse_width=2.0/1000, frame_width=20.0/1000)
 
-    def set_pulse_us(self, pulse_width_us):
-        # Clamp values
-        pulse_width_us = max(MIN_US, min(MAX_US, pulse_width_us))
-        lgpio.tx_pwm(self.handle, self.pin, 50, (pulse_width_us - 1000) / 10.0)
-        # 50 Hz PWM → 20 ms frame; duty cycle = (pulse_us / 20000) * 100
-
-    def cleanup(self):
-        lgpio.gpiochip_close(self.handle)
 
 class MinimalSubscriber(Node):
     def __init__(self):
@@ -40,13 +32,25 @@ class MinimalSubscriber(Node):
         )
         self.last_time = self.get_clock().now()
         self.min_interval = 0.2  # seconds
-        self.esc = ESCController(CHIP, ESC_PIN)
+
+        self.current_speed = ESC_NEUTRAL
 
         # Arm ESC
-        self.get_logger().info("Arming ESC at neutral...")
-        self.esc.set_pulse_us(NEUTRAL_US)
-        sleep(2.0)
+        self.get_logger().info("Arming ESC (neutral)...")
+        esc.value = ESC_NEUTRAL
+        sleep(1.0)
         self.get_logger().info("ESC armed and ready.")
+
+    def ramp_to_speed(self, target_speed):
+        """Gradually move from current to target speed"""
+        step = RAMP_STEP if target_speed > self.current_speed else -RAMP_STEP
+        while abs(target_speed - self.current_speed) > abs(step):
+            self.current_speed += step
+            esc.value = self.current_speed
+            sleep(RAMP_DELAY)
+        # Final adjustment
+        esc.value = target_speed
+        self.current_speed = target_speed
 
     def listener_callback(self, msg):
         now = self.get_clock().now()
@@ -62,22 +66,26 @@ class MinimalSubscriber(Node):
             f'pressed={msg.pressed}'
         )
 
-        # Map speed_proc (-100..100) → pulse width (1000–2000 µs)
-        pulse = int(NEUTRAL_US + (msg.speedproc / 100.0) * 500)
-        self.esc.set_pulse_us(pulse)
-        self.get_logger().info(f"ESC pulse set to {pulse} µs")
+        # Clamp and ramp safely
+        target_speed = max(min(msg.speedproc, ESC_MAX), ESC_MIN)
+        self.get_logger().info(f"Ramping to {target_speed:.2f}")
+        self.ramp_to_speed(target_speed)
 
-    def destroy_node(self):
-        self.esc.set_pulse_us(NEUTRAL_US)
-        self.esc.cleanup()
-        super().destroy_node()
 
 def main(args=None):
     rclpy.init(args=args)
     node = MinimalSubscriber()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.get_logger().info("Stopping ESC (neutral)...")
+        esc.value = ESC_NEUTRAL
+        sleep(1.0)
+        node.destroy_node()
+        rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()
