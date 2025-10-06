@@ -2,9 +2,11 @@ import rclpy
 from rclpy.node import Node
 from autocar_interface.msg import DrivingCommand
 from rclpy.time import Time  # for comparing ROS time
-from gpiozero import Servo
-from time import sleep
+from gpiozero.pins.lgpio import LGPIOFactory
+from gpiozero import Device
+Device.pin_factory = LGPIOFactory()
 
+from gpiozero import Servo
 #Used on GPIO 17, look at GPIO-sheet to see.
 
 esc = Servo(17)
