@@ -38,15 +38,14 @@ class MinimalSubscriber(Node):
 
         # Convert msg.speedproc to PWM duty cycle
         # Assuming speedproc is between -1.0 and 1.0
-        pwm_value = max(0.0, min(1.0, (msg.speedproc + 1.0) / 2.0))
-        self.esc.value = pwm_value/100
+        self.esc.value = msg.speedproc/100
 
         self.get_logger().info(
             f'I heard: button="{msg.button}", '
             f'speed_proc={msg.speedproc}, '
             f'angle={msg.angle}, '
             f'pressed={msg.pressed}, '
-            f'PWM value set to {pwm_value:.2f}'
+            f'PWM value set to {msg.speedproc/100:.2f}'
         )
 
     def destroy_node(self):
