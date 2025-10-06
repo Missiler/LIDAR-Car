@@ -31,17 +31,17 @@ class MinimalSubscriber(Node):
         self.last_time = self.get_clock().now()
         self.min_interval = 0.2  # seconds
 
-        # Initialize ESC pin
-        self.handle = lgpio.gpiochip_open(CHIP)
-        lgpio.gpio_claim_output(self.handle, PIN_ESC)
+        # Initialize ESC pin safely
+        self.gpio_handle = lgpio.gpiochip_open(CHIP)
+        lgpio.gpio_claim_output(self.gpio_handle, PIN_ESC)
 
         # Perform ESC calibration once
         self.get_logger().info("Starting ESC calibration...")
-        lgpio.tx_pwm(self.handle, PIN_ESC, FREQ, pulse_to_duty(2.0) * 100)  # Full throttle
+        lgpio.tx_pwm(self.gpio_handle, PIN_ESC, FREQ, pulse_to_duty(2.0) * 100)  # Full throttle
         sleep(2.0)
-        lgpio.tx_pwm(self.handle, PIN_ESC, FREQ, pulse_to_duty(1.0) * 100)  # Full reverse
+        lgpio.tx_pwm(self.gpio_handle, PIN_ESC, FREQ, pulse_to_duty(1.0) * 100)  # Full reverse
         sleep(2.0)
-        lgpio.tx_pwm(self.handle, PIN_ESC, FREQ, pulse_to_duty(1.5) * 100)  # Neutral
+        lgpio.tx_pwm(self.gpio_handle, PIN_ESC, FREQ, pulse_to_duty(1.5) * 100)  # Neutral
         sleep(2.0)
         self.get_logger().info("ESC calibration done. Arming neutral...")
         sleep(1.0)
@@ -61,7 +61,7 @@ class MinimalSubscriber(Node):
         duty = pulse_to_duty(pulse_ms)
 
         # Send PWM signal
-        lgpio.tx_pwm(self.handle, PIN_ESC, FREQ, duty * 100)
+        lgpio.tx_pwm(self.gpio_handle, PIN_ESC, FREQ, duty * 100)
 
         self.get_logger().info(
             f'speedproc={msg.speedproc:.1f} (clamped={safe_speed:.1f}) → '
@@ -70,8 +70,8 @@ class MinimalSubscriber(Node):
 
     def destroy_node(self):
         self.get_logger().info("Stopping ESC PWM and shutting down...")
-        lgpio.tx_pwm(self.handle, PIN_ESC, 0, 0)
-        lgpio.gpiochip_close(self.handle)
+        lgpio.tx_pwm(self.gpio_handle, PIN_ESC, 0, 0)
+        lgpio.gpiochip_close(self.gpio_handle)
         super().destroy_node()
 
 
