@@ -39,7 +39,7 @@ class MinimalSubscriber(Node):
         if msg.speedproc == 0:
             esc = 0
         else:
-            esc = msg.speedproc/200
+            esc = msg.speedproc/100
         print(esc)
 
 
