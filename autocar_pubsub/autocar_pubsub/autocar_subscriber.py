@@ -26,7 +26,7 @@ class ESCServoNode(Node):
         
         self.servo_min = 0  # microseconds
         self.servo_max = 2000
-        self.servo_center = 1500  # neutral steering
+        self.servo_center = 10  # neutral steering
         
         self.pi.set_servo_pulsewidth(PIN_SERVO, self.servo_center)
 
@@ -39,8 +39,10 @@ class ESCServoNode(Node):
             return
         self.last_time = now
         
-        steering = max(-1.0, min(1.0, msg.angle))
-        servo_pulse = self.servo_min + (steering + 1) * (self.servo_max - self.servo_min) / 2
+        steering = max(0, min(1.0, msg.angle))
+        
+        servo_pulse = 1000 * steering * 2
+                                         
         self.pi.set_servo_pulsewidth(PIN_SERVO, servo_pulse)
         
         self.get_logger().info(
