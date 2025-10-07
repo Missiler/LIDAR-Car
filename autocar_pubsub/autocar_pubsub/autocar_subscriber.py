@@ -10,6 +10,7 @@ from time import sleep
 Device.pin_factory = LGPIOFactory()
 
 PIN_ESC = 17       # PWM output pin (BCM numbering)
+PIN_DIR = 4
 FREQ = 1000        # 1 kHz PWM
 CHIP = 0           # Usually 0 on Raspberry Pi
 
@@ -28,6 +29,7 @@ class MinimalSubscriber(Node):
         # Initialize PWM pin
         self.gpio_handle = lgpio.gpiochip_open(CHIP)
         lgpio.gpio_claim_output(self.gpio_handle, PIN_ESC)
+        lgpio.gpio_claim_output(self.gpio_handle, PIN_DIR)
         sleep(0.1)
 
         # Start with 0 % duty (off)
@@ -42,9 +44,13 @@ class MinimalSubscriber(Node):
         self.last_time = now
 
         # Convert speedproc (expected −100 → 100) to duty 0–100 %
-        duty_percent = (max(-100.0, min(100.0, msg.speedproc)))
+        duty_percent = abs((max(-100.0, min(100.0, msg.speedproc))))
         if msg.speedproc == 0:
             duty_percent = 0
+        if msg.speedproc < 0:
+            lgpio.gpio_write(self.gpio_handle,PIN_DIR,1)
+        else:
+            lgpio.gpio_write(self.gpio_handle,PIN_DIR,0)
 
         lgpio.tx_pwm(self.gpio_handle, PIN_ESC, FREQ, duty_percent)
 
