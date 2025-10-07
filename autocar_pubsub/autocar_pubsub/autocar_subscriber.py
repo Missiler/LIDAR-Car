@@ -9,15 +9,9 @@ from time import sleep
 # Use lgpio backend
 Device.pin_factory = LGPIOFactory()
 
-PIN_ESC = 17       # ESC signal pin (BCM numbering)
-FREQ = 500         # 100 Hz -> 20 ms period
+PIN_ESC = 17       # PWM output pin (BCM numbering)
+FREQ = 1000        # 1 kHz PWM
 CHIP = 0           # Usually 0 on Raspberry Pi
-
-# Convert pulse width (ms) to duty cycle (0–1)
-def pulse_to_duty(pulse_ms):
-    period_ms = 1000 / FREQ
-    return pulse_ms / period_ms
-
 
 class MinimalSubscriber(Node):
     def __init__(self):
@@ -29,22 +23,16 @@ class MinimalSubscriber(Node):
             10
         )
         self.last_time = self.get_clock().now()
-        self.min_interval = 0.2  # seconds
+        self.min_interval = 0.05  # seconds between updates (20 Hz)
 
-        # Initialize ESC pin safely
+        # Initialize PWM pin
         self.gpio_handle = lgpio.gpiochip_open(CHIP)
         lgpio.gpio_claim_output(self.gpio_handle, PIN_ESC)
+        sleep(0.1)
 
-        # Perform ESC calibration once
-        self.get_logger().info("Starting ESC calibration...")
-        lgpio.tx_pwm(self.gpio_handle, PIN_ESC, FREQ, pulse_to_duty(2.0) * 100)  # Full throttle
-        sleep(2.0)
-        lgpio.tx_pwm(self.gpio_handle, PIN_ESC, FREQ, pulse_to_duty(1.0) * 100)  # Full reverse
-        sleep(2.0)
-        lgpio.tx_pwm(self.gpio_handle, PIN_ESC, FREQ, pulse_to_duty(1.5) * 100)  # Neutral
-        sleep(2.0)
-        self.get_logger().info("ESC calibration done. Arming neutral...")
-        sleep(1.0)
+        # Start with 0 % duty (off)
+        lgpio.tx_pwm(self.gpio_handle, PIN_ESC, FREQ, 0.0)
+        self.get_logger().info("PWM at 1 kHz initialized, output = 0 %")
 
     def listener_callback(self, msg):
         now = self.get_clock().now()
@@ -53,23 +41,17 @@ class MinimalSubscriber(Node):
             return
         self.last_time = now
 
-        # Clamp speed to safe range (-50 to 50)
-        safe_speed = max(-50.0, min(50.0, msg.speedproc))
+        # Convert speedproc (expected −100 → 100) to duty 0–100 %
+        duty_percent = (max(-100.0, min(100.0, msg.speedproc)) + 100.0) / 2.0
 
-        # Map speedproc (-50 to 50) to pulse width 1.3–1.7 ms
-        pulse_ms = 1.5 + (safe_speed / 50.0) * 0.2
-        duty = float(pulse_to_duty(pulse_ms))
-
-        # Send PWM signal
-        lgpio.tx_pwm(self.gpio_handle, PIN_ESC, FREQ, duty * 100)
+        lgpio.tx_pwm(self.gpio_handle, PIN_ESC, FREQ, duty_percent)
 
         self.get_logger().info(
-            f'speedproc={msg.speedproc:.1f} (clamped={safe_speed:.1f}) → '
-            f'pulse={pulse_ms:.2f} ms (duty={duty*100:.1f}%)'
+            f'speedproc={msg.speedproc:.1f} → duty={duty_percent:.1f} %'
         )
 
     def destroy_node(self):
-        self.get_logger().info("Stopping ESC PWM and shutting down...")
+        self.get_logger().info("Stopping PWM and shutting down...")
         lgpio.tx_pwm(self.gpio_handle, PIN_ESC, 0, 0)
         lgpio.gpiochip_close(self.gpio_handle)
         super().destroy_node()
