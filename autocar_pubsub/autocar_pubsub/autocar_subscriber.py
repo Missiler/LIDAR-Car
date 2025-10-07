@@ -16,7 +16,7 @@ class ESCServoNode(Node):
             self.listener_callback,
             10
         )
-
+        
         self.pi = pigpio.pi()
         if not self.pi.connected:
             raise RuntimeError("pigpio daemon not running. Start it with: sudo pigpiod")
@@ -24,9 +24,9 @@ class ESCServoNode(Node):
         self.last_time = self.get_clock().now()
         self.min_interval = 0.05  # 20 Hz update limit
         
-        self.servo_min = 0  # microseconds
+        self.servo_min = 500  # microseconds
         self.servo_max = 2000
-        self.servo_center = 10  # neutral steering
+        self.servo_center = 500  # neutral steering
         
         self.pi.set_servo_pulsewidth(PIN_SERVO, self.servo_center)
 
@@ -39,9 +39,8 @@ class ESCServoNode(Node):
             return
         self.last_time = now
         
-        steering = max(0, min(1.0, msg.angle))
         
-        servo_pulse = 1000 * steering * 2
+        servo_pulse = map_range(msg.angle,-90,45,500,2500)
                                          
         self.pi.set_servo_pulsewidth(PIN_SERVO, servo_pulse)
         
@@ -58,6 +57,10 @@ class ESCServoNode(Node):
 
         super().destroy_node()
 
+
+def map_range(x, in_min, in_max, out_min, out_max):
+    """Linearly map a value from one range to another."""
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
 def main(args=None):
     rclpy.init(args=args)
