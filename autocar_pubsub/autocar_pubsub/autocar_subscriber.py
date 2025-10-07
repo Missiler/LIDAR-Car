@@ -35,6 +35,11 @@ class MinimalSubscriber(Node):
         # Start with 0 % duty (off)
         lgpio.tx_pwm(self.gpio_handle, PIN_ESC, FREQ, 0.0)
         self.get_logger().info("PWM at 1 kHz initialized, output = 0 %")
+        
+        # Initialize motion control state
+        self.current_duty = 0.0
+        self.current_dir = 0
+        self.ramp_rate = 10.0  # percent per update (controls acceleration smoothness)
 
     def listener_callback(self, msg):
         now = self.get_clock().now()
