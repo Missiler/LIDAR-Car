@@ -6,7 +6,6 @@ from time import sleep
 
 PIN_SERVO = 12
 PIN_ESC = 18
-PIN_DIR = 2
 
 class ESCServoNode(Node):
     def __init__(self):
@@ -31,15 +30,17 @@ class ESCServoNode(Node):
         self.servo_center = (self.servo_min + self.servo_max) / 2
 
         # ESC (throttle) parameters
-        self.esc_min = 1560
-        self.esc_max = 1590
+        self.esc_min = 1000
+        self.esc_max = 1600
         self.esc_neutral = (self.esc_min + self.esc_max) / 2
-
+        
+        self.pi.set_servo_pulsewidth(PIN_ESC, self.esc_max)
+        sleep(1)
+        self.pi.set_servo_pulsewidth(PIN_ESC, self.esc_min)
+        sleep(1)
         # Center servo and ESC on startup
         self.pi.set_servo_pulsewidth(PIN_SERVO, self.servo_center)
         self.pi.set_servo_pulsewidth(PIN_ESC, self.esc_neutral)
-        self.pi.set_mode(PIN_DIR, pigpio.OUTPUT)
-        self.pi.write(PIN_DIR, 1) 
 
         self.get_logger().info("Initialized, servo and ESC to neutral / center.")
         
@@ -60,10 +61,6 @@ class ESCServoNode(Node):
         # Set outputs
         self.pi.set_servo_pulsewidth(PIN_SERVO, servo_pulse)
         self.pi.set_servo_pulsewidth(PIN_ESC, esc_pulse)
-        if msg.speedproc < 0:
-            self.pi.write(PIN_DIR, 1)
-        else:
-            self.pi.write(PIN_DIR, 0)
             
 
     def destroy_node(self):
