@@ -50,7 +50,7 @@ class ESCServoNode(Node):
         self.pi.set_servo_pulsewidth(PIN_ESC, esc_pulse)
 
         # --- Servo control ---
-        angle = max(-45.0, min(45.0, msg.angle))
+        angle = max(-90.0, min(45.0, msg.angle))
         servo_pulse = self._map_value(angle, -90, 45, 1100, 1900)
         self.pi.set_servo_pulsewidth(PIN_SERVO, servo_pulse)
 
