@@ -1,44 +1,41 @@
 import rclpy
 from rclpy.node import Node
 from autocar_interface.msg import DrivingCommand
-from gpiozero.pins.lgpio import LGPIOFactory
-from gpiozero import Device
-import lgpio
+import pigpio
 from time import sleep
 
-# Use lgpio backend
-Device.pin_factory = LGPIOFactory()
+PIN_ESC = 18
+PIN_SERVO = 12
+FREQ = 50  # Hz, standard for ESC/servo PWM
 
-PIN_ESC = 18        # PWM output pin (BCM numbering)
-FREQ = 500           # 50 Hz typical for servo/ESC control
-CHIP = 0            # Usually 0 on Raspberry Pi
-
-class MinimalSubscriber(Node):
+class ESCServoNode(Node):
     def __init__(self):
-        super().__init__('minimal_subscriber')
+        super().__init__('esc_servo_node')
         self.subscription = self.create_subscription(
             DrivingCommand,
             'topic',
             self.listener_callback,
             10
         )
+
+        self.pi = pigpio.pi()
+        if not self.pi.connected:
+            raise RuntimeError("pigpio daemon not running. Start it with: sudo pigpiod")
+
+        # Initialize ESC and Servo at neutral positions
+        self.neutral_pulse = 1500
+        self.pi.set_servo_pulsewidth(PIN_ESC, self.neutral_pulse)
+        self.pi.set_servo_pulsewidth(PIN_SERVO, self.neutral_pulse)
+
         self.last_time = self.get_clock().now()
-        self.min_interval = 0.05  # seconds between updates (20 Hz)
+        self.min_interval = 0.05  # 20 Hz update limit
 
-        # Initialize GPIO
-        self.gpio_handle = lgpio.gpiochip_open(CHIP)
-        lgpio.gpio_claim_output(self.gpio_handle, PIN_ESC)
-        sleep(0.1)
+        self.get_logger().info("ESC + Servo initialized with pigpio (neutral = 1500 µs)")
 
-        # Arm ESC: send neutral pulse for safety
-        duty_neutral = self._pulse_to_duty(1.5)
-        lgpio.tx_pwm(self.gpio_handle, PIN_ESC, FREQ, duty_neutral)
-        self.get_logger().info(f"ESC armed at neutral (1.5 ms → {duty_neutral:.2f}% duty)")
-
-    def _pulse_to_duty(self, pulse_ms):
-        """Convert pulse width (ms) to duty % for 50 Hz PWM."""
-        period_ms = 1000 / FREQ  # 20 ms
-        return (pulse_ms / period_ms) * 100
+    def _map_value(self, value, in_min, in_max, out_min, out_max):
+        """Linear mapping function."""
+        value = max(in_min, min(in_max, value))  # clamp
+        return out_min + (value - in_min) * (out_max - out_min) / (in_max - in_min)
 
     def listener_callback(self, msg):
         now = self.get_clock().now()
@@ -47,31 +44,34 @@ class MinimalSubscriber(Node):
             return
         self.last_time = now
 
-        # Clamp and map [-100, 100] → [1.0, 2.0] ms
+        # --- ESC control ---
         speed = max(-100.0, min(100.0, msg.speedproc))
-        pulse_ms = 1.5 + (speed / 100.0) * 0.5  # 1.0–2.0 ms
-        duty = self._pulse_to_duty(pulse_ms)
+        esc_pulse = self._map_value(speed, -100, 100, 1000, 2000)
+        self.pi.set_servo_pulsewidth(PIN_ESC, esc_pulse)
 
-        lgpio.tx_pwm(self.gpio_handle, PIN_ESC, FREQ, duty)
+        # --- Servo control ---
+        angle = max(-45.0, min(45.0, msg.angle))
+        servo_pulse = self._map_value(angle, -45, 45, 1100, 1900)
+        self.pi.set_servo_pulsewidth(PIN_SERVO, servo_pulse)
 
         self.get_logger().info(
-            f"speedproc={speed:.1f} → pulse={pulse_ms:.3f} ms → duty={duty:.2f}%"
+            f"speed={speed:.1f}% → ESC={esc_pulse:.0f} µs | angle={angle:.1f}° → SERVO={servo_pulse:.0f} µs"
         )
 
     def destroy_node(self):
-        self.get_logger().info("Stopping ESC PWM and shutting down...")
-        # Send neutral before shutdown
-        duty_neutral = self._pulse_to_duty(1.5)
-        lgpio.tx_pwm(self.gpio_handle, PIN_ESC, FREQ, duty_neutral)
+        self.get_logger().info("Shutting down ESC + Servo safely...")
+        self.pi.set_servo_pulsewidth(PIN_ESC, self.neutral_pulse)
+        self.pi.set_servo_pulsewidth(PIN_SERVO, self.neutral_pulse)
         sleep(0.5)
-        lgpio.tx_pwm(self.gpio_handle, PIN_ESC, 0, 0)
-        lgpio.gpiochip_close(self.gpio_handle)
+        self.pi.set_servo_pulsewidth(PIN_ESC, 0)
+        self.pi.set_servo_pulsewidth(PIN_SERVO, 0)
+        self.pi.stop()
         super().destroy_node()
 
 
 def main(args=None):
     rclpy.init(args=args)
-    node = MinimalSubscriber()
+    node = ESCServoNode()
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
