@@ -10,8 +10,8 @@ from time import sleep
 Device.pin_factory = LGPIOFactory()
 
 PIN_ESC = 17       # PWM output pin (BCM numbering)
-PIN_DIR = 4
-FREQ = 2000        # 1 kHz PWM
+PIN_DIR = 4        # Direction control pin
+FREQ = 20000        # PWM frequency (Hz)
 CHIP = 0           # Usually 0 on Raspberry Pi
 
 class MinimalSubscriber(Node):
@@ -26,7 +26,7 @@ class MinimalSubscriber(Node):
         self.last_time = self.get_clock().now()
         self.min_interval = 0.05  # seconds between updates (20 Hz)
 
-        # Initialize PWM pin
+        # Initialize GPIO
         self.gpio_handle = lgpio.gpiochip_open(CHIP)
         lgpio.gpio_claim_output(self.gpio_handle, PIN_ESC)
         lgpio.gpio_claim_output(self.gpio_handle, PIN_DIR)
@@ -34,12 +34,8 @@ class MinimalSubscriber(Node):
 
         # Start with 0 % duty (off)
         lgpio.tx_pwm(self.gpio_handle, PIN_ESC, FREQ, 0.0)
-        self.get_logger().info("PWM at 1 kHz initialized, output = 0 %")
-        
-        # Initialize motion control state
-        self.current_duty = 0.0
-        self.current_dir = 0
-        self.ramp_rate = 10.0  # percent per update (controls acceleration smoothness)
+        lgpio.gpio_write(self.gpio_handle, PIN_DIR, 0)
+        self.get_logger().info("PWM initialized at 2 kHz, output = 0 %")
 
     def listener_callback(self, msg):
         now = self.get_clock().now()
@@ -48,36 +44,24 @@ class MinimalSubscriber(Node):
             return
         self.last_time = now
 
-        # Clamp speed command
+        # Clamp speedproc to [-100, 100]
         speed = max(-100.0, min(100.0, msg.speedproc))
-        target_dir = 1 if speed < 0 else 0
-        target_duty = abs(speed)
 
-        # Smoothly ramp toward target_duty
-        if target_duty > self.current_duty:
-            self.current_duty = min(self.current_duty + self.ramp_rate, target_duty)
+        # Determine direction
+        if speed < 0:
+            lgpio.gpio_write(self.gpio_handle, PIN_DIR, 1)
         else:
-            self.current_duty = max(self.current_duty - self.ramp_rate, target_duty)
+            lgpio.gpio_write(self.gpio_handle, PIN_DIR, 0)
 
-        # Handle safe direction changes
-        if target_dir != self.current_dir and self.current_duty > 0:
-            # Stop before reversing
-            lgpio.tx_pwm(self.gpio_handle, PIN_ESC, FREQ, 0)
-            sleep(0.05)
-            self.current_duty = 0
+        # Use absolute value for PWM duty
+        duty_percent = abs(speed)
 
-        # Apply new direction if needed
-        if target_dir != self.current_dir:
-            lgpio.gpio_write(self.gpio_handle, PIN_DIR, target_dir)
-            self.current_dir = target_dir
-
-        # Output PWM
-        lgpio.tx_pwm(self.gpio_handle, PIN_ESC, FREQ, self.current_duty)
+        # Apply PWM
+        lgpio.tx_pwm(self.gpio_handle, PIN_ESC, FREQ, duty_percent)
 
         self.get_logger().info(
-            f'speedproc={speed:.1f} dir={'REV' if target_dir else 'FWD'} → duty={self.current_duty:.1f}%'
+            f"speedproc={speed:.1f} → dir={'REV' if speed < 0 else 'FWD'} → duty={duty_percent:.1f}%"
         )
-
 
     def destroy_node(self):
         self.get_logger().info("Stopping PWM and shutting down...")
