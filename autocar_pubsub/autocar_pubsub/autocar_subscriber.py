@@ -63,6 +63,13 @@ class ESCServoNode(Node):
         # Set outputs
         self.pi.set_servo_pulsewidth(PIN_SERVO, servo_pulse)
         self.pi.set_servo_pulsewidth(PIN_ESC, esc_pulse)
+        
+        #Testing
+        for i in range(10):
+            self.pi.set_servo_pulsewidth(PIN_ESC,1400)
+            sleep(0.5)
+            self.pi.set_servo_pulsewidth(PIN_ESC,1500)
+            sleep(0.5)
             
 
     def destroy_node(self):
