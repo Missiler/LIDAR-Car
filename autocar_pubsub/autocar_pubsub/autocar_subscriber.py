@@ -30,7 +30,7 @@ class ESCServoNode(Node):
         self.servo_center = (self.servo_min + self.servo_max) / 2
 
         # ESC (throttle) parameters
-        self.esc_min = 500
+        self.esc_min = 1000
         self.esc_max = 2000
         self.esc_neutral = (self.esc_min + self.esc_max) / 2
         

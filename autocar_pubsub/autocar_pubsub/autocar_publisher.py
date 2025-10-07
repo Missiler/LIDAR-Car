@@ -77,10 +77,10 @@ def main(args=None):
                 node.speedproc = max(node.speedproc - 1, -100)
                 button = "DOWN"; pressed = True
             elif last == curses.KEY_LEFT:
-                node.angle = max(node.angle - 5, -90)
+                node.angle = max(node.angle - 30, -90)
                 button = "LEFT"; pressed = True
             elif last == curses.KEY_RIGHT:
-                node.angle = min(node.angle + 5, 0)
+                node.angle = min(node.angle + 30, 0)
                 button = "RIGHT"; pressed = True
             elif last == ord('t'):
                 button = "T"; pressed = True
