@@ -24,7 +24,7 @@ class ESCServoNode(Node):
         self.last_time = self.get_clock().now()
         self.min_interval = 0.05  # 20 Hz update limit
         
-        self.servo_min = 1000  # microseconds
+        self.servo_min = 0  # microseconds
         self.servo_max = 2000
         self.servo_center = 1500  # neutral steering
         
