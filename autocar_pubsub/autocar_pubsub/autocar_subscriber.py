@@ -18,20 +18,21 @@ class ESCServoNode(Node):
         )
         
         self.pi = pigpio.pi()
+        
         if not self.pi.connected:
             raise RuntimeError("pigpio daemon not running. Start it with: sudo pigpiod")
 
         self.last_time = self.get_clock().now()
         self.min_interval = 0.05  # 20 Hz update limit
         
-        self.servo_min = 500  # microseconds
-        self.servo_max = 2000
-        self.servo_center = 500  # neutral steering
+        self.pi_min = 500  # microseconds
+        self.pi_max = 2000
+        self.pi_center = 500  # neutral steering
         
-        self.esc_speed = 1500
+        self.pi_speed = 1500
         
-        self.pi.set_servo_pulsewidth(PIN_SERVO, self.servo_center)
-        self.pi.set_servo_pulsedwith(PIN_ESC, self.esc_speed)
+        self.pi.set_servo_pulsewidth(PIN_SERVO, self.pi_center)
+        self.pi.set_servo_pulsewidth(PIN_ESC, self.pi_speed)
 
         self.get_logger().info("")
 
@@ -58,6 +59,7 @@ class ESCServoNode(Node):
         # Stop PWM outputs
         self.pi.set_servo_pulsewidth(PIN_SERVO, 0)
         self.pi.set_servo_pulsewidth(PIN_ESC, 0)
+        self.pi.stop()
         self.pi.stop()
 
         super().destroy_node()
