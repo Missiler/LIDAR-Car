@@ -58,7 +58,7 @@ class MinimalSubscriber(Node):
 
         # Map speedproc (-50 to 50) to pulse width 1.3–1.7 ms
         pulse_ms = 1.5 + (safe_speed / 50.0) * 0.2
-        duty = pulse_to_duty(pulse_ms)
+        duty = float(pulse_to_duty(pulse_ms))
 
         # Send PWM signal
         lgpio.tx_pwm(self.gpio_handle, PIN_ESC, FREQ, duty * 100)
