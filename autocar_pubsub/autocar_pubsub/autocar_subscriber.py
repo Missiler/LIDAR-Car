@@ -31,7 +31,7 @@ class ESCServoNode(Node):
         self.esc_speed = 1500
         
         self.pi.set_servo_pulsewidth(PIN_SERVO, self.servo_center)
-        self.pi.set_servo_pulsediwth(PIN_ESC, self.esc_speed)
+        self.pi.set_servo_pulsedwith(PIN_ESC, self.esc_speed)
 
         self.get_logger().info("")
 
