@@ -11,7 +11,7 @@ Device.pin_factory = LGPIOFactory()
 
 PIN_ESC = 18       # PWM output pin (BCM numbering)
 PIN_DIR = 4        # Direction control pin
-FREQ = 20000        # PWM frequency (Hz)
+FREQ = 1000        # PWM frequency (Hz)
 CHIP = 0           # Usually 0 on Raspberry Pi
 
 class MinimalSubscriber(Node):
