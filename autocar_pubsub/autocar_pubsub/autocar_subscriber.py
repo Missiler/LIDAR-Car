@@ -25,19 +25,11 @@ class ESCServoNode(Node):
         self.last_time = self.get_clock().now()
         self.min_interval = 0.05  # 20 Hz update limit
         
-        self.pi_min = 500  # microseconds
-        self.pi_max = 2000
-        self.pi_center = 500  # neutral steering
-        
-        self.pi_speed = 1500
-        
+
+        self.pi_center = 1000  # neutral steering
+
+
         self.pi.set_servo_pulsewidth(PIN_SERVO, self.pi_center)
-        self.pi.set_servo_pulsewidth(PIN_ESC, self.pi_speed)
-        
-        self.pi.set_servo_pulsewidth(PIN_ESC, 2000)
-        sleep(2)
-        self.pi.set_servo_pulsewidth(PIN_ESC, 1000)
-        sleep(2)
 
         self.get_logger().info("")
 
@@ -51,8 +43,10 @@ class ESCServoNode(Node):
         
         servo_pulse = map_range(msg.angle,-90, 0, 500, 2000)
         esc_pulse = map_range(msg.speedproc,-100, 100, 1000, 2000)
-        
-        self.pi.set_servo_pulsewidth(PIN_ESC, esc_pulse)
+        used_f = 2000
+        duty = int(esc_pulse/(1000000 / used_f))
+        self.pi.hardware_PWM(PIN_ESC, used_f, duty)
+
         self.pi.set_servo_pulsewidth(PIN_SERVO, servo_pulse)
         
         self.get_logger().info(
@@ -63,8 +57,6 @@ class ESCServoNode(Node):
         self.get_logger().info("Shutting down ESC + Servo safely...")
         # Stop PWM outputs
         self.pi.set_servo_pulsewidth(PIN_SERVO, 0)
-        self.pi.set_servo_pulsewidth(PIN_ESC, 0)
-        self.pi.stop()
         self.pi.stop()
 
         super().destroy_node()
