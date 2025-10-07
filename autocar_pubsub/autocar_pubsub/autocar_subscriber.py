@@ -28,7 +28,10 @@ class ESCServoNode(Node):
         self.servo_max = 2000
         self.servo_center = 500  # neutral steering
         
+        self.esc_speed = 1500
+        
         self.pi.set_servo_pulsewidth(PIN_SERVO, self.servo_center)
+        self.pi.set_servo_pulsediwth(PIN_ESC, self.esc_speed)
 
         self.get_logger().info("")
 
@@ -41,7 +44,9 @@ class ESCServoNode(Node):
         
         
         servo_pulse = map_range(msg.angle,-90,45,500,2500)
-                                         
+        esc_pulse = map_range(msg.speedproc,-100,100,500,2500)
+        
+        self.pi.set_servo_pulsewidth(PIN_ESC, esc_pulse)
         self.pi.set_servo_pulsewidth(PIN_SERVO, servo_pulse)
         
         self.get_logger().info(
