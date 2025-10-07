@@ -30,14 +30,16 @@ class ESCServoNode(Node):
         self.servo_center = (self.servo_min + self.servo_max) / 2
 
         # ESC (throttle) parameters
-        self.esc_min = 1400
+        self.esc_min = 1390
         self.esc_max = 1450
         self.esc_neutral = (self.esc_min + self.esc_max) / 2
         
         # Center servo and ESC on startup
+        self.pi.set_servo_pulsewidth(PIN_ESC, 1000)
+        sleep(2)
         self.pi.set_servo_pulsewidth(PIN_SERVO, self.servo_center)
         self.pi.set_servo_pulsewidth(PIN_ESC, 1440)
-        sleep(0.05)
+        sleep(0.1)
 
         self.get_logger().info("Initialized, servo and ESC to neutral / center.")
         
