@@ -31,8 +31,14 @@ class ESCServoNode(Node):
         
         self.pi_speed = 1500
         
+        self.pi.set_PWM_frequency()
         self.pi.set_servo_pulsewidth(PIN_SERVO, self.pi_center)
         self.pi.set_servo_pulsewidth(PIN_ESC, self.pi_speed)
+        
+        self.pi.set_servo_pulsewidth(PIN_ESC, 2000)
+        sleep(2)
+        self.pi.set_servo_pulsewidth(PIN_ESC, 1000)
+        sleep(2)
 
         self.get_logger().info("")
 
@@ -44,7 +50,7 @@ class ESCServoNode(Node):
         self.last_time = now
         
         
-        servo_pulse = map_range(msg.angle,-90, 45, 500, 2500)
+        servo_pulse = map_range(msg.angle,-90, 0, 500, 2000)
         esc_pulse = map_range(msg.speedproc,-100, 100, 1000, 2000)
         
         self.pi.set_servo_pulsewidth(PIN_ESC, esc_pulse)
