@@ -71,10 +71,10 @@ def main(args=None):
                 return  # exit cleanly
 
             if last == curses.KEY_UP:
-                node.speedproc = min(node.speedproc + 1, 100)
+                node.speedproc = min(node.speedproc + 5, 100)
                 button = "UP"; pressed = True
             elif last == curses.KEY_DOWN:
-                node.speedproc = max(node.speedproc - 1, -100)
+                node.speedproc = max(node.speedproc - 5, -100)
                 button = "DOWN"; pressed = True
             elif last == curses.KEY_LEFT:
                 node.angle = max(node.angle - 10, -90)
