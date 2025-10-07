@@ -43,6 +43,8 @@ class MinimalSubscriber(Node):
 
         # Convert speedproc (expected −100 → 100) to duty 0–100 %
         duty_percent = (max(-100.0, min(100.0, msg.speedproc)))
+        if msg.speedproc == 0:
+            duty_percent = 0
 
         lgpio.tx_pwm(self.gpio_handle, PIN_ESC, FREQ, duty_percent)
 
