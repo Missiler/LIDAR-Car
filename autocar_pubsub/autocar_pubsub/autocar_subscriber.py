@@ -10,7 +10,7 @@ from time import sleep
 Device.pin_factory = LGPIOFactory()
 
 PIN_ESC = 17       # ESC signal pin (BCM numbering)
-FREQ = 700         # 100 Hz -> 20 ms period
+FREQ = 500         # 100 Hz -> 20 ms period
 CHIP = 0           # Usually 0 on Raspberry Pi
 
 # Convert pulse width (ms) to duty cycle (0–1)
