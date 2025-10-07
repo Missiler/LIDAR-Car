@@ -31,7 +31,6 @@ class ESCServoNode(Node):
         
         self.pi_speed = 1500
         
-        self.pi.set_PWM_frequency()
         self.pi.set_servo_pulsewidth(PIN_SERVO, self.pi_center)
         self.pi.set_servo_pulsewidth(PIN_ESC, self.pi_speed)
         
