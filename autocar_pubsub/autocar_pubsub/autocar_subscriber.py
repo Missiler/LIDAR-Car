@@ -36,27 +36,43 @@ class MinimalSubscriber(Node):
         lgpio.tx_pwm(self.gpio_handle, PIN_ESC, FREQ, 0.0)
         self.get_logger().info("PWM at 1 kHz initialized, output = 0 %")
 
-    def listener_callback(self, msg):
-        now = self.get_clock().now()
-        elapsed = (now - self.last_time).nanoseconds / 1e9
-        if elapsed < self.min_interval:
-            return
-        self.last_time = now
+def listener_callback(self, msg):
+    now = self.get_clock().now()
+    elapsed = (now - self.last_time).nanoseconds / 1e9
+    if elapsed < self.min_interval:
+        return
+    self.last_time = now
 
-        # Convert speedproc (expected −100 → 100) to duty 0–100 %
-        duty_percent = abs((max(-100.0, min(100.0, msg.speedproc))))
-        if msg.speedproc == 0:
-            duty_percent = 0
-        if msg.speedproc < 0:
-            lgpio.gpio_write(self.gpio_handle,PIN_DIR,1)
-        else:
-            lgpio.gpio_write(self.gpio_handle,PIN_DIR,0)
+    # Clamp speed command
+    speed = max(-100.0, min(100.0, msg.speedproc))
+    target_dir = 1 if speed < 0 else 0
+    target_duty = abs(speed)
 
-        lgpio.tx_pwm(self.gpio_handle, PIN_ESC, FREQ, duty_percent)
+    # Smoothly ramp toward target_duty
+    if target_duty > self.current_duty:
+        self.current_duty = min(self.current_duty + self.ramp_rate, target_duty)
+    else:
+        self.current_duty = max(self.current_duty - self.ramp_rate, target_duty)
 
-        self.get_logger().info(
-            f'speedproc={msg.speedproc:.1f} → duty={duty_percent:.1f} %'
-        )
+    # Handle safe direction changes
+    if target_dir != self.current_dir and self.current_duty > 0:
+        # Stop before reversing
+        lgpio.tx_pwm(self.gpio_handle, PIN_ESC, FREQ, 0)
+        sleep(0.05)
+        self.current_duty = 0
+
+    # Apply new direction if needed
+    if target_dir != self.current_dir:
+        lgpio.gpio_write(self.gpio_handle, PIN_DIR, target_dir)
+        self.current_dir = target_dir
+
+    # Output PWM
+    lgpio.tx_pwm(self.gpio_handle, PIN_ESC, FREQ, self.current_duty)
+
+    self.get_logger().info(
+        f'speedproc={speed:.1f} dir={'REV' if target_dir else 'FWD'} → duty={self.current_duty:.1f}%'
+    )
+
 
     def destroy_node(self):
         self.get_logger().info("Stopping PWM and shutting down...")
