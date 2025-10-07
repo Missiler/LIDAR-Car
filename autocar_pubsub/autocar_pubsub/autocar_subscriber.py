@@ -44,14 +44,14 @@ class ESCServoNode(Node):
         self.last_time = now
         
         
-        servo_pulse = map_range(msg.angle,-90,45,500,2500)
-        esc_pulse = map_range(msg.speedproc,-100,100,500,2500)
+        servo_pulse = map_range(msg.angle,-90, 45, 500, 2500)
+        esc_pulse = map_range(msg.speedproc,-100, 100, 1000, 2000)
         
         self.pi.set_servo_pulsewidth(PIN_ESC, esc_pulse)
         self.pi.set_servo_pulsewidth(PIN_SERVO, servo_pulse)
         
         self.get_logger().info(
-            f""
+            f"Speed%={msg.speedproc} angle={msg.angle}"
         )
 
     def destroy_node(self):
