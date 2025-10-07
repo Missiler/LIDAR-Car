@@ -6,7 +6,7 @@ from time import sleep
 
 PIN_ESC = 18
 PIN_SERVO = 12
-FREQ = 50  # Hz, standard for ESC/servo PWM
+FREQ = 500  # Hz, standard for ESC/servo PWM
 
 class ESCServoNode(Node):
     def __init__(self):
