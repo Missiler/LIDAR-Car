@@ -1,6 +1,7 @@
+
+from autocar_interface.msg import DrivingCommand
 import rclpy
 from rclpy.node import Node
-from autocar_interface.msg import DrivingCommand
 import pigpio
 from time import sleep
 
