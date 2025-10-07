@@ -10,7 +10,7 @@ from time import sleep
 Device.pin_factory = LGPIOFactory()
 
 PIN_ESC = 18        # PWM output pin (BCM numbering)
-FREQ = 50           # 50 Hz typical for servo/ESC control
+FREQ = 500           # 50 Hz typical for servo/ESC control
 CHIP = 0            # Usually 0 on Raspberry Pi
 
 class MinimalSubscriber(Node):
