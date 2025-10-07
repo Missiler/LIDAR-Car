@@ -34,9 +34,9 @@ class ESCServoNode(Node):
         self.esc_max = 1600
         self.esc_neutral = (self.esc_min + self.esc_max) / 2
         
-        self.pi.set_servo_pulsewidth(PIN_ESC, self.esc_max)
+        self.pi.set_servo_pulsewidth(PIN_ESC, 2000)
         sleep(1)
-        self.pi.set_servo_pulsewidth(PIN_ESC, self.esc_min)
+        self.pi.set_servo_pulsewidth(PIN_ESC, 1000)
         sleep(1)
         # Center servo and ESC on startup
         self.pi.set_servo_pulsewidth(PIN_SERVO, self.servo_center)
