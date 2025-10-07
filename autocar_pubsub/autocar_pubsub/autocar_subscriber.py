@@ -22,7 +22,7 @@ class ESCServoNode(Node):
             raise RuntimeError("pigpio daemon not running. Start it with: sudo pigpiod")
 
         self.last_time = self.get_clock().now()
-        self.min_interval = 0.05  # 20 Hz update limit
+        self.min_interval = 0.2  # 20 Hz update limit
 
         # Servo parameters
         self.servo_min = 500
@@ -39,23 +39,7 @@ class ESCServoNode(Node):
         self.pi.set_servo_pulsewidth(PIN_ESC, self.esc_neutral)
 
         self.get_logger().info("Initialized, servo and ESC to neutral / center.")
-
-        # Optionally do ESC calibration / arming
-        self.calibrate_esc()
-
-    def calibrate_esc(self):
-        self.get_logger().info("Calibrating ESC: sending max then min throttle...")
-        # Send max throttle
-        self.pi.set_servo_pulsewidth(PIN_ESC, self.esc_max)
-        sleep(2.0)
-        # Send min throttle
-        self.pi.set_servo_pulsewidth(PIN_ESC, self.esc_min)
-        sleep(2.0)
-        # Then neutral
-        self.pi.set_servo_pulsewidth(PIN_ESC, self.esc_neutral)
-        sleep(1.0)
-        self.get_logger().info("ESC calibration / arming done (hopefully).")
-
+        
     def listener_callback(self, msg):
         now = self.get_clock().now()
         elapsed = (now - self.last_time).nanoseconds / 1e9
@@ -81,8 +65,12 @@ class ESCServoNode(Node):
         self.pi.stop()
         super().destroy_node()
 
+
+
 def map_range(x, in_min, in_max, out_min, out_max):
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
+
+
 
 def main(args=None):
     rclpy.init(args=args)
