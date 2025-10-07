@@ -9,7 +9,7 @@ from time import sleep
 # Use lgpio backend
 Device.pin_factory = LGPIOFactory()
 
-PIN_ESC = 17       # PWM output pin (BCM numbering)
+PIN_ESC = 18       # PWM output pin (BCM numbering)
 PIN_DIR = 4        # Direction control pin
 FREQ = 20000        # PWM frequency (Hz)
 CHIP = 0           # Usually 0 on Raspberry Pi
